@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.VissoApp" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/blue_primary</item>
+    </style>
+</resources>
