@@ -45,13 +45,19 @@ fun AdminUsuariosScreen(
     LaunchedEffect(operationState) {
         when (operationState) {
             is Resource.Success -> {
-                snackbarHostState.showSnackbar((operationState as Resource.Success).data ?: "Operación exitosa")
-                viewModel.resetOperationState()
                 showCreateDialog = false
                 showEditDialog = false
                 showDeleteDialog = false
+                // Espera un frame para asegurar que el diálogo se cierre antes de mostrar el Snackbar
+                kotlinx.coroutines.delay(150)
+                snackbarHostState.showSnackbar((operationState as Resource.Success).data ?: "Operación exitosa")
+                viewModel.resetOperationState()
             }
             is Resource.Error -> {
+                showCreateDialog = false
+                showEditDialog = false
+                showDeleteDialog = false
+                kotlinx.coroutines.delay(150)
                 snackbarHostState.showSnackbar((operationState as Resource.Error).message ?: "Error")
                 viewModel.resetOperationState()
             }
@@ -184,31 +190,6 @@ fun AdminUsuariosScreen(
                 viewModel.actualizarUsuario(usuarioSeleccionado!!.id!!, usuario)
             },
             isCreate = false
-        )
-    }
-
-    if (showDeleteDialog && usuarioSeleccionado != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Eliminar Usuario") },
-            text = {
-                Text("¿Está seguro de eliminar al usuario \"${usuarioSeleccionado?.nombre} ${usuarioSeleccionado?.apellido}\"?")
-            },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.eliminarUsuario(usuarioSeleccionado!!.id!!) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Eliminar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
         )
     }
 }

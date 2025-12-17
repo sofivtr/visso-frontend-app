@@ -26,6 +26,7 @@ fun PerfilScreen(
     navController: NavController,
     viewModel: PerfilViewModel = hiltViewModel()
 ) {
+
     val usuarioState by viewModel.usuario.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
     val scope = rememberCoroutineScope()
@@ -36,8 +37,10 @@ fun PerfilScreen(
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    
+
     var emailError by remember { mutableStateOf<String?>(null) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(usuarioState) {
         if (usuarioState is Resource.Success) {
@@ -49,9 +52,17 @@ fun PerfilScreen(
     }
 
     LaunchedEffect(updateState) {
-        if (updateState is Resource.Success) {
-            isEditing = false
-            viewModel.resetUpdateState()
+        when (updateState) {
+            is Resource.Success -> {
+                isEditing = false
+                snackbarHostState.showSnackbar("Perfil actualizado exitosamente")
+                viewModel.resetUpdateState()
+            }
+            is Resource.Error -> {
+                snackbarHostState.showSnackbar((updateState as Resource.Error).message ?: "Error al actualizar perfil")
+                viewModel.resetUpdateState()
+            }
+            else -> {}
         }
     }
 
@@ -74,7 +85,8 @@ fun PerfilScreen(
         },
         bottomBar = {
             BottomNavigationBar(navController = navController, currentRoute = "perfil")
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         when (val state = usuarioState) {
             is Resource.Loading -> {

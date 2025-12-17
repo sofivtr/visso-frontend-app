@@ -54,17 +54,31 @@ fun AdminProductosScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(operationState) {
+    // Estado para error de código repetido
+    var codigoError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(operationState, showCreateDialog, showEditDialog) {
         when (operationState) {
             is Resource.Success -> {
-                snackbarHostState.showSnackbar((operationState as Resource.Success).data ?: "Operación exitosa")
-                viewModel.resetOperationState()
                 showCreateDialog = false
                 showEditDialog = false
                 showDeleteDialog = false
+                codigoError = null
+                kotlinx.coroutines.delay(150)
+                snackbarHostState.showSnackbar((operationState as Resource.Success).data ?: "Operación exitosa")
+                viewModel.resetOperationState()
             }
             is Resource.Error -> {
-                snackbarHostState.showSnackbar((operationState as Resource.Error).message ?: "Error")
+                val msg = (operationState as Resource.Error).message ?: "Error"
+                // Forzar mensaje 'Código existente' si es error genérico al crear
+                if (showCreateDialog && msg.trim().equals("Error al crear producto", ignoreCase = true)) {
+                    codigoError = "Código existente"
+                } else if (msg.trim().equals("Código existente", ignoreCase = true)) {
+                    codigoError = "Código existente"
+                } else {
+                    codigoError = msg
+                }
+                // No cerrar el modal, solo limpiar el estado de operación
                 viewModel.resetOperationState()
             }
             else -> {}
@@ -179,11 +193,14 @@ fun AdminProductosScreen(
     if (showCreateDialog) {
         ProductoFormDialog(
             title = "Crear Producto",
+            codigoError = codigoError,
+            onCodigoErrorClear = { codigoError = null },
             onDismiss = { showCreateDialog = false },
             onConfirm = { codigo, nombre, desc, precio, stock, imagen, cat, marca ->
                 viewModel.crearProducto(codigo, nombre, desc, precio, stock, imagen, cat, marca)
             },
-            viewModel = viewModel
+            viewModel = viewModel,
+            isEdit = false
         )
     }
 
@@ -191,6 +208,8 @@ fun AdminProductosScreen(
         ProductoFormDialog(
             title = "Editar Producto",
             producto = productoSeleccionado,
+            codigoError = codigoError,
+            onCodigoErrorClear = { codigoError = null },
             onDismiss = { showEditDialog = false },
             onConfirm = { codigo, nombre, desc, precio, stock, imagen, cat, marca ->
                 viewModel.actualizarProducto(
@@ -199,7 +218,8 @@ fun AdminProductosScreen(
                     productoSeleccionado!!.fechaCreacion
                 )
             },
-            viewModel = viewModel
+            viewModel = viewModel,
+            isEdit = true
         )
     }
 
@@ -300,9 +320,12 @@ fun ProductoAdminCard(
 fun ProductoFormDialog(
     title: String,
     producto: Producto? = null,
+    codigoError: String? = null,
+    onCodigoErrorClear: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onConfirm: (String, String, String, Double, Int, String, Categoria, Marca) -> Unit,
-    viewModel: AdminProductosViewModel
+    viewModel: AdminProductosViewModel,
+    isEdit: Boolean = false
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -406,6 +429,11 @@ fun ProductoFormDialog(
         }
     }
 
+    // Validación de campos obligatorios para habilitar el botón Guardar
+    val camposValidos = codigo.isNotBlank() && nombre.isNotBlank() && descripcion.isNotBlank() &&
+        precio.toDoubleOrNull() != null && stock.toIntOrNull() != null &&
+        categoriaSeleccionada != null && marcaSeleccionada != null
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -418,10 +446,20 @@ fun ProductoFormDialog(
             ) {
                 OutlinedTextField(
                     value = codigo,
-                    onValueChange = { codigo = it },
+                    onValueChange = {
+                        if (!isEdit) {
+                            if (it.length <= 10) {
+                                codigo = it
+                                if (codigoError != null) onCodigoErrorClear?.invoke()
+                            }
+                        }
+                    },
                     label = { Text("Código") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    isError = codigoError != null,
+                    supportingText = codigoError?.let { { Text(it) } },
+                    enabled = !isEdit
                 )
 
                 OutlinedTextField(
@@ -556,9 +594,7 @@ fun ProductoFormDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (codigo.isNotBlank() && nombre.isNotBlank() &&
-                        precio.toDoubleOrNull() != null && stock.toIntOrNull() != null &&
-                        categoriaSeleccionada != null && marcaSeleccionada != null) {
+                    if (camposValidos) {
                         onConfirm(
                             codigo, nombre, descripcion,
                             precio.toDouble(), stock.toInt(),
@@ -567,7 +603,7 @@ fun ProductoFormDialog(
                         )
                     }
                 },
-                enabled = !subiendoImagen
+                enabled = !subiendoImagen && (if (!isEdit) camposValidos else true)
             ) {
                 if (subiendoImagen) {
                     CircularProgressIndicator(
