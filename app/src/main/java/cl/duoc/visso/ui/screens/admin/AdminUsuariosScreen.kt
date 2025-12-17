@@ -447,7 +447,7 @@ fun UsuarioFormDialog(
                         expanded = rolExpanded,
                         onDismissRequest = { rolExpanded = false }
                     ) {
-                        listOf("USER", "ADMIN").forEach { rolOption ->
+                        listOf("USER", "VENDEDOR", "ADMIN").forEach { rolOption ->
                             DropdownMenuItem(
                                 text = { Text(rolOption) },
                                 onClick = {

@@ -45,10 +45,10 @@ class MainActivity : ComponentActivity() {
 
                             startDestination = if (isLoggedIn) {
                                 // Redirigir según el rol del usuario
-                                if (userRole == "ADMIN") {
-                                    Screen.AdminHome.route
-                                } else {
-                                    Screen.Home.route
+                                when (userRole) {
+                                    "ADMIN" -> Screen.AdminHome.route
+                                    "VENDEDOR" -> Screen.VendedorHome.route
+                                    else -> Screen.Home.route
                                 }
                             } else {
                                 Screen.Login.route

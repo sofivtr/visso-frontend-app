@@ -16,6 +16,8 @@ import cl.duoc.visso.ui.screens.admin.AdminHomeScreen
 import cl.duoc.visso.ui.screens.admin.AdminProductosScreen
 import cl.duoc.visso.ui.screens.admin.AdminUsuariosScreen
 import cl.duoc.visso.ui.screens.weather.WeatherScreen
+import cl.duoc.visso.ui.screens.vendedor.VendedorHomeScreen
+import cl.duoc.visso.ui.screens.vendedor.VendedorProductosScreen
 
 
 @Composable
@@ -34,10 +36,10 @@ fun NavGraph(
                 onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
                 onLoginSuccess = { rol ->
                     // Redirigir según el rol del usuario
-                    val destination = if (rol == "ADMIN") {
-                        Screen.AdminHome.route
-                    } else {
-                        Screen.Home.route
+                    val destination = when (rol) {
+                        "ADMIN" -> Screen.AdminHome.route
+                        "VENDEDOR" -> Screen.VendedorHome.route
+                        else -> Screen.Home.route
                     }
 
                     navController.navigate(destination) {
@@ -121,5 +123,16 @@ fun NavGraph(
         composable(Screen.WeatherScreen.route) {
             WeatherScreen(navController)
         }
+
+
+        // ===== VENDEDOR FLOW =====
+        composable(Screen.VendedorHome.route) {
+            VendedorHomeScreen(navController)
+        }
+
+        composable(Screen.VendedorProductos.route) {
+            VendedorProductosScreen(navController)
+        }
     }
+
 }
